@@ -13,7 +13,15 @@ warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()   { echo -e "${RED}[ERROR]${NC} $*" >&2; exit 1; }
 
 # ── Root check ──────────────────────────────────────────────────────────────
-[[ $EUID -eq 0 ]] || die "Please run as root:  sudo bash $0"
+if [[ $EUID -ne 0 ]]; then
+    # If running from a real file, re-exec with sudo
+    if [[ -f "$0" ]]; then
+        info "Not running as root — re-executing with sudo..."
+        exec sudo bash "$0" "$@"
+    else
+        die "Please run with:  sudo bash install.sh"
+    fi
+fi
 
 # ── Detect OS ───────────────────────────────────────────────────────────────
 if ! grep -qi 'ubuntu' /etc/os-release 2>/dev/null; then
