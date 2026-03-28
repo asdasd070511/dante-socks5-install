@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Dante SOCKS5 Proxy — One-Click Installer for Ubuntu (TCP Only)
+# Dante SOCKS5 Proxy — One-Click Installer for Ubuntu/Debian (TCP Only)
 # Performance-optimised with kernel-level TCP tuning
 # ============================================================================
 set -euo pipefail
@@ -71,20 +71,17 @@ cat > /etc/danted.conf << 'DANTECFG'
 # Dante SOCKS5 — TCP-Only, Performance-Optimised Configuration
 # ============================================================================
 
-logoutput: syslog /var/log/danted.log
+logoutput: syslog
 
 # ── Interfaces ──────────────────────────────────────────────────────────────
 internal: NETIF port = PORT
 external: NETIF
 
-# ── Worker / child process tuning ──────────────────────────────────────────
-# Negotiate phase (SOCKS handshake) — short-lived, many children
-child.maxidle: yes
-child.maxrequests: 0
-
-# ── Socket options for performance ──────────────────────────────────────────
-socket.recvbuf.tcp: 262144
-socket.sendbuf.tcp: 262144
+# ── Socket options for performance (new API syntax) ────────────────────────
+internal.tcp.so_rcvbuf: 262144
+internal.tcp.so_sndbuf: 262144
+external.tcp.so_rcvbuf: 262144
+external.tcp.so_sndbuf: 262144
 
 # ── Timeouts (aggressive for TCP proxy speed) ──────────────────────────────
 timeout.negotiate: 8
@@ -240,10 +237,6 @@ After=network-online.target
 Wants=network-online.target
 EOF
 
-# Create log file
-touch /var/log/danted.log
-chmod 640 /var/log/danted.log
-
 systemctl daemon-reload
 ok "Systemd service optimised."
 
@@ -282,24 +275,6 @@ else
 fi
 
 # ============================================================================
-# 9. LOGROTATE
-# ============================================================================
-cat > /etc/logrotate.d/danted << 'EOF'
-/var/log/danted.log {
-    daily
-    rotate 7
-    compress
-    delaycompress
-    missingok
-    notifempty
-    postrotate
-        systemctl reload danted > /dev/null 2>&1 || true
-    endscript
-}
-EOF
-ok "Log rotation configured (7 days)."
-
-# ============================================================================
 # DONE
 # ============================================================================
 PUBLIC_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || echo "$SERVER_IP")
@@ -329,6 +304,6 @@ echo -e "  ${YELLOW}Management:${NC}"
 echo -e "    systemctl status danted"
 echo -e "    systemctl restart danted"
 echo -e "    journalctl -u danted -f"
-echo -e "    tail -f /var/log/danted.log"
+echo -e "    journalctl -u danted --no-pager -n 50"
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
