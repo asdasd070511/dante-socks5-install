@@ -8,17 +8,17 @@ Performance-optimised Dante SOCKS5 proxy for Ubuntu. **TCP only, no UDP.**
 bash <(curl -fsSL https://raw.githubusercontent.com/asdasd070511/dante-socks5-install/main/install.sh)
 ```
 
-Or with preset credentials (non-interactive):
+Custom port:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/asdasd070511/dante-socks5-install/main/install.sh \
-  | PROXY_USER=myuser PROXY_PASS=mypass PROXY_PORT=1080 sudo bash
+  | PROXY_PORT=9090 sudo bash
 ```
 
 ## What It Does
 
 - Installs `dante-server` on Ubuntu
-- Configures SOCKS5 with username/password auth
+- Configures SOCKS5 with **no authentication** (open proxy)
 - **TCP only** — all UDP is explicitly blocked
 - Applies kernel-level TCP performance tuning
 - Auto-detects network interface and IP
@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/asdasd070511/dante-socks5-install/m
 ## Test
 
 ```bash
-curl -x socks5h://user:pass@YOUR_IP:1080 https://ifconfig.me
+curl -x socks5h://YOUR_IP:1080 https://ifconfig.me
 ```
 
 ## Management

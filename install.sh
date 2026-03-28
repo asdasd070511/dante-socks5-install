@@ -22,25 +22,13 @@ fi
 
 # ── Configuration (edit these or pass as env vars) ──────────────────────────
 PROXY_PORT="${PROXY_PORT:-1080}"
-PROXY_USER="${PROXY_USER:-}"
-PROXY_PASS="${PROXY_PASS:-}"
 WORKER_PROCS="${WORKER_PROCS:-0}"          # 0 = auto (CPU cores * 2)
 
-# ── Interactive prompt if user/pass not provided ────────────────────────────
-if [[ -z "$PROXY_USER" ]]; then
-    echo ""
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}  Dante SOCKS5 Proxy Installer (TCP Only / Optimised)${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    read -rp "SOCKS5 username: " PROXY_USER
-    [[ -n "$PROXY_USER" ]] || die "Username cannot be empty."
-    read -rsp "SOCKS5 password: " PROXY_PASS
-    echo ""
-    [[ -n "$PROXY_PASS" ]] || die "Password cannot be empty."
-    read -rp "Proxy port [1080]: " input_port
-    PROXY_PORT="${input_port:-1080}"
-fi
+echo ""
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${CYAN}  Dante SOCKS5 Proxy Installer (TCP Only / Optimised)${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
 
 # ── Detect primary network interface & IP ───────────────────────────────────
 NET_IF=$(ip -4 route show default | awk '{print $5; exit}')
@@ -67,17 +55,7 @@ apt-get install -y -qq dante-server > /dev/null 2>&1
 ok "dante-server installed."
 
 # ============================================================================
-# 2. CREATE PROXY USER (system user, no shell)
-# ============================================================================
-if ! id "$PROXY_USER" &>/dev/null; then
-    useradd -r -s /usr/sbin/nologin "$PROXY_USER"
-    info "Created system user: $PROXY_USER"
-fi
-echo "${PROXY_USER}:${PROXY_PASS}" | chpasswd
-ok "User $PROXY_USER configured."
-
-# ============================================================================
-# 3. WRITE OPTIMISED danted.conf  (TCP ONLY)
+# 2. WRITE OPTIMISED danted.conf  (TCP ONLY)
 # ============================================================================
 info "Writing /etc/danted.conf..."
 cat > /etc/danted.conf << 'DANTECFG'
@@ -105,9 +83,9 @@ timeout.negotiate: 8
 timeout.io: 3600
 timeout.tcp_fin_wait: 30
 
-# ── Authentication ──────────────────────────────────────────────────────────
+# ── Authentication (none — open proxy) ─────────────────────────────────────
 clientmethod: none
-socksmethod: username
+socksmethod: none
 
 # ── Client rules (who can connect to the proxy) ────────────────────────────
 client pass {
@@ -129,7 +107,7 @@ socks pass {
     command: connect
     protocol: tcp
     log: error
-    socksmethod: username
+    socksmethod: none
 }
 
 # Block everything else
@@ -323,13 +301,11 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN}  Dante SOCKS5 Proxy — Installation Complete${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "  Protocol :  ${CYAN}SOCKS5 (TCP only)${NC}"
+echo -e "  Protocol :  ${CYAN}SOCKS5 (TCP only, no auth)${NC}"
 echo -e "  Server   :  ${CYAN}${PUBLIC_IP}${NC}"
 echo -e "  Port     :  ${CYAN}${PROXY_PORT}${NC}"
-echo -e "  Username :  ${CYAN}${PROXY_USER}${NC}"
-echo -e "  Password :  ${CYAN}(as configured)${NC}"
 echo ""
-echo -e "  ${YELLOW}Test:${NC}  curl -x socks5h://${PROXY_USER}:<password>@${PUBLIC_IP}:${PROXY_PORT} https://ifconfig.me"
+echo -e "  ${YELLOW}Test:${NC}  curl -x socks5h://${PUBLIC_IP}:${PROXY_PORT} https://ifconfig.me"
 echo ""
 echo -e "  ${YELLOW}Performance tuning applied:${NC}"
 echo -e "    - BBR congestion control"
